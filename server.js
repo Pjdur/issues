@@ -3,14 +3,34 @@ const fs = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
 const session = require('express-session');
-
-// Load configuration
 const config = require('./config/config');
+
+// Load configuration based on environment
+const envConfig = process.env.NODE_ENV === 'production' ? 
+    config.production : config.development;
 
 // Initialize Express
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Directory setup middleware
+async function setupDirectories(req, res, next) {
+    try {
+        // Create required directories
+        await fs.mkdir(envConfig.staticDir, { recursive: true });
+        await fs.mkdir(envConfig.issueDir, { recursive: true });
+        await fs.mkdir(path.join(envConfig.issueDir, 'answers'), { recursive: true });
+        next();
+    } catch (error) {
+        next(error);
+    }
+}
+
+app.use(setupDirectories);
+
+// Serve frontend files
+app.use(express.static(path.resolve(__dirname, envConfig.staticDir)));
 
 // Session middleware
 app.use(session({
