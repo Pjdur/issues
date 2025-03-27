@@ -112,7 +112,7 @@ async function authenticateAdmin(username, password) {
 
 // Admin authentication routes
 app.get('/admin/login', (req, res) => {
-    res.sendFile(path.join(__dirname, config.STATIC_DIR, 'admin-login.html'));
+    res.sendFile(path.join(__dirname, config.development.staticDir, 'admin-login.html'));
 });
 
 app.post('/admin/login', async (req, res) => {
@@ -153,7 +153,7 @@ function requireAdmin(req, res, next) {
 // Admin dashboard
 app.get('/admin/dashboard', requireAdmin, async (req, res) => {
     try {
-        const pendingIssues = await fs.readdir(config.ISSUE_DIR)
+        const pendingIssues = await fs.readdir(config.development.issueDir)
             .then(files => files.filter(f => !f.includes('.answer')));
         res.json({ issues: pendingIssues });
     } catch (error) {
@@ -167,8 +167,8 @@ app.post('/admin/answer/:issueId', requireAdmin, async (req, res) => {
     const { answer } = req.body;
 
     try {
-        const issuePath = path.join(config.ISSUE_DIR, `${issueId}.txt`);
-        const answerPath = path.join(config.ISSUE_DIR, 'answers', `${issueId}.answer.txt`);
+        const issuePath = path.join(config.development.issueDir, `${issueId}.txt`);
+        const answerPath = path.join(config.development.issueDir, 'answers', `${issueId}.answer.txt`);
 
         // Read original issue
         const issueContent = await fs.readFile(issuePath, 'utf8');
