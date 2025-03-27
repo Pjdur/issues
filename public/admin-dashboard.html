@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .issue-card { border: 1px solid #ccc; padding: 15px; margin-bottom: 15px; 
+                     border-radius: 4px; background-color: white; }
+        .issue-header { display: flex; justify-content: space-between; 
+                       align-items: center; margin-bottom: 10px; }
+        textarea { width: 100%; height: 150px; margin: 10px 0; padding: 8px; 
+                  border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 20px; background-color: #007bff; color: white; 
+                border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        .logout { float: right; margin-top: -40px; }
+    </style>
+</head>
+<body>
+    <h2>Admin Dashboard</h2>
+    <a href="/admin/logout" class="logout">Logout</a>
+    
+    <div id="issuesList"></div>
+
+    <script>
+        async function loadIssues() {
+            try {
+                const response = await fetch('/admin/dashboard');
+                const issues = await response.json();
+                
+                const issuesList = document.getElementById('issuesList');
+                issuesList.innerHTML = '';
+                
+                issues.issues.forEach(issue => {
+                    const issueCard = document.createElement('div');
+                    issueCard.className = 'issue-card';
+                    
+                    const issueContent = JSON.parse(
+                        localStorage.getItem(`issue-${issue}`) || '{}'
+                    );
+                    
+                    issueCard.innerHTML = `
+                        <div class="issue-header">
+                            <h3>Issue #${issue}</h3>
+                            <button onclick="showAnswerForm('${issue}')">Answer</button>
+                        </div>
+                        <pre>${issueContent.description || 'Loading...'}</pre>
+                    `;
+                    
+                    issuesList.appendChild(issueCard);
+                });
+            } catch (error) {
+                console.error('Error loading issues:', error);
+            }
+        }
+
+        async function showAnswerForm(issueId) {
+            const response = await fetch(`/admin/dashboard/${issueId}`);
+            const issueData = await response.json();
+            
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background-color: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                z-index: 1000;
+            `;
+            
+            modal.innerHTML = `
+                <h3>Respond to Issue #${issueId}</h3>
+                <textarea id="answer-${issueId}" 
+                          placeholder="Enter your response..."></textarea>
+                <button onclick="submitAnswer('${issueId}')">Submit Answer</button>
+                <button onclick="closeModal()">Cancel</button>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+
+        async function submitAnswer(issueId) {
+            const answer = document.getElementById(`answer-${issueId}`).value;
+            
+            try {
+                const response = await fetch(`/admin/answer/${issueId}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({answer})
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    closeModal();
+                    loadIssues(); // Refresh issues list
+                }
+            } catch (error) {
+                console.error('Error submitting answer:', error);
+            }
+        }
+
+        function closeModal() {
+            document.querySelectorAll('.modal').forEach(modal => modal.remove());
+        }
+
+        // Load issues on page load
+        loadIssues();
+        
+        // Refresh issues every minute
+        setInterval(loadIssues, 60000);
+    </script>
+</body>
+</html>
