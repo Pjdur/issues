@@ -140,3 +140,6 @@ package-lock.json
 
 # issues folder
 issues
+
+# admin file
+admins.txt
